@@ -56,6 +56,7 @@ class StateRepository:
         actor_subject: str,
         conversation_reference_id: str | None,
         created_at_utc: str,
+        options_provided_at_utc: str,
         expires_at_utc: str,
     ) -> None:
         """Record a local, unconfirmed hold for later workflow revalidation."""
@@ -64,8 +65,9 @@ class StateRepository:
             """
             INSERT INTO slot_holds (
                 hold_id, source_shipment_id, source_slot_id, actor_subject,
-                conversation_reference_id, status, created_at_utc, expires_at_utc
-            ) VALUES (?, ?, ?, ?, ?, 'ACTIVE', ?, ?)
+                conversation_reference_id, status, created_at_utc,
+                options_provided_at_utc, expires_at_utc
+            ) VALUES (?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?)
             """,
             (
                 hold_id,
@@ -74,9 +76,30 @@ class StateRepository:
                 actor_subject,
                 conversation_reference_id,
                 created_at_utc,
+                options_provided_at_utc,
                 expires_at_utc,
             ),
         )
+
+    def record_hold_reminder(
+        self,
+        *,
+        hold_id: str,
+        reminder_sent_at_utc: str,
+    ) -> bool:
+        """Record one sent chat reminder; workflow code owns deadline validation."""
+
+        result = self._connection.execute(
+            """
+            UPDATE slot_holds
+            SET reminder_sent_at_utc = ?
+            WHERE hold_id = ?
+              AND status = 'ACTIVE'
+              AND reminder_sent_at_utc IS NULL
+            """,
+            (reminder_sent_at_utc, hold_id),
+        )
+        return result.rowcount == 1
 
     def record_idempotency_key(
         self,

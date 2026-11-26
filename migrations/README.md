@@ -15,5 +15,7 @@ The migration runner owns transaction boundaries. Do not include `BEGIN`,
 `1_initial_state.sql` creates only DockIt-owned persistence primitives: local
 holds, idempotency records, audit events, and references to source conversations.
 It does not copy or modify SetuHaul appointments, slots, messages, or contacts.
+`2_hold_option_delivery_timing.sql` records when options were shown and whether
+the one 2.5-minute chat reminder was sent, while preserving existing holds.
 The detailed source-query contract is documented in
 [`docs/source-data-contract.md`](../docs/source-data-contract.md).
