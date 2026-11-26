@@ -1,6 +1,6 @@
 # DockIt AI implementation plan
 
-**Status:** Roadmap reviewed; scope decisions still pending before implementation  
+**Status:** Steps 1–2 complete; Step 0 operational decisions remain open  
 **Prepared:** 2026-11-26  
 **Planning model:** GPT-5.6-Terra (Extra High)
 
@@ -8,14 +8,13 @@
 
 DockIt is intended to help SetuHaul freight drivers report delays, find feasible dock alternatives, and safely reschedule appointments. The repository defines the intended boundaries: FastAPI (api), LangChain and Redis (agent), deterministic/CP-SAT scheduling (scheduler), SQLite and migrations (db), Pydantic contracts (schemas), and business workflows (services).
 
-The workspace is a scaffold. Only core/config.py contains application logic; there are no API endpoints, repositories, migrations, scheduler rules, agent flows, tests, or tracked seed database.
-
 The delivery roadmap was reviewed in Notion on 2026-11-26. It confirms the
 product boundary, MVP UI, and key technology choices below. It does not define
 the remaining operational and integration details needed to safely implement
-booking, so Step 0 remains an in-progress decision gate. The user authorized
-the safe, framework-only Step 1 foundation before that gate closes; booking,
-source-data, scheduling, and external-integration implementation remain gated.
+booking, so Step 0 remains an in-progress decision gate. The service foundation
+(Step 1) and persistence/source boundary (Step 2) are implemented. Booking
+authority, scheduling policy, and external-integration implementation remain
+gated by the unresolved operational decisions.
 
 ## Governing decisions
 
@@ -23,7 +22,7 @@ source-data, scheduling, and external-integration implementation remain gated.
    the LLM from deciding capacity, dock compatibility, business priority, or
    final booking. It may extract intent, request missing facts, explain
    options, and call typed tools.
-2. Read the SetuHaul source database only until its ownership and mutability are confirmed. Store DockIt holds, idempotency data, audit events, and migration metadata in a separate writable state database.
+2. Treat the SetuHaul schema-and-seed SQL as the tracked source-data contract. Runtime source data is provisioned separately and opened read-only; store DockIt holds, idempotency data, audit events, conversation references, and migration metadata in a distinct writable state database.
 3. A confirmation is safe only when its service transaction revalidates capacity, guards against races, writes the result atomically, and appends an audit event.
 4. Start with transparent deterministic feasibility. Use bounded CP-SAT only for confirmed contention or batch-optimization requirements.
 5. Store instants in UTC and make facility-local presentation explicit.
@@ -75,8 +74,8 @@ out-of-scope boundaries, Streamlit/Cognito/LangChain/Redis/Pydantic/CP-SAT
 choices, and the prohibition on LLM operational decisions.
 
 **Remaining deliverables:** confirmed acceptance tests and written decisions
-for the appointment source of truth, booking mutation authority, seed-data
-contract, hold/expiry policy, facility constraints/objectives, escalation
+for the appointment source of truth, booking mutation authority, hold/expiry
+policy, facility constraints/objectives, escalation
 owner, PII/retention policy, AgentCore model/runtime configuration, deployment
 target, and pilot measures.
 
@@ -98,6 +97,22 @@ code before this gate closes.
 **Exit:** a minimal service runs predictably and quality failures are actionable.
 
 ## Step 2 — persistence and source-data boundary
+
+**Status:** Complete. The tracked source contract is
+`data/setuhaul_schema_and_seed.sql`; ignored local `data/*.db` snapshots are not
+runtime deliverables. Tests create disposable source databases from the tracked
+SQL. The application keeps source and state connections separate, protects
+against canonical paths resolving to the same file, exposes only driver-scoped
+source reads, and migrates DockIt-owned state through an ordered,
+SHA-256-checked, transaction-controlled runner. The initial state schema
+contains conversation references, local holds, idempotency records, and audit
+events. Step record: `docs/implementation/02-persistence-source-data.md`.
+
+**Final validation:** Ruff passed; mypy passed for 19 source files; pytest
+reported 26 passed. The 17 warnings were third-party LangSmith deprecations.
+GPT-5.6-Terra (Extra High) implementation review accepted the remediation.
+Runtime environments must provision the source DB or configure
+`DOCKIT_SOURCE_DATABASE_PATH`; `data/*.db` is ignored.
 
 **Implement:**
 
@@ -222,7 +237,7 @@ Feasibility precedes booking side effects. Identity/protections precede external
 | Decision | Required resolution |
 | --- | --- |
 | Roadmap scope and dates | Authenticate the Notion page or provide an export/paste. |
-| Source database ownership/schema | Inspect a safe copy and confirm owner/contract. |
+| Source database ownership/schema | Step 2 established the tracked schema-and-seed SQL contract and the read-only ownership boundary; runtime must provision a compatible source DB. |
 | Hold versus external reservation | Define authority, TTL, approval, and compensation behaviour. |
 | Scheduling rules/objectives | Confirm facility/business constraints and rank priorities. |
 | AgentCore/runtime/deployment | Confirm the runtime model, AgentCore configuration, failure policy, and target environment. |
@@ -239,4 +254,7 @@ Feasibility precedes booking side effects. Identity/protections precede external
 
 ## Next action
 
-Provide authenticated Notion access or paste/export the roadmap. Then complete Step 0 by adding a roadmap-to-step traceability table here before implementation begins.
+Proceed to Step 3 contracts and policy while keeping unresolved booking and
+external mutation authority explicit; do not implement booking side effects
+until Step 0 decisions close. Resolve remaining Step 0 items as operational
+owners and pilot requirements are confirmed.

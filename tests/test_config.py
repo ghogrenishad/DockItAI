@@ -20,6 +20,12 @@ def test_database_paths_are_resolved_and_separate() -> None:
     assert settings.state_database_path == BASE_DIR / "fixtures/state.db"
 
 
+def test_default_source_path_matches_the_supplied_setuhaul_snapshot() -> None:
+    settings = Settings()
+
+    assert settings.source_database_path == BASE_DIR / "data/dockit.db"
+
+
 def test_same_source_and_state_database_is_rejected(tmp_path: Path) -> None:
     database_path = tmp_path / "shared.db"
 
