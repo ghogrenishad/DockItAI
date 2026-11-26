@@ -357,7 +357,7 @@ def test_initial_state_migration_isolated_from_source_and_supports_state_reposit
     connection = _connect_state(tmp_path / "state.db")
     try:
         runner = MigrationRunner(BASE_DIR / "migrations")
-        assert [migration.version for migration in runner.apply(connection)] == [1, 2]
+        assert [migration.version for migration in runner.apply(connection)] == [1, 2, 3]
         assert runner.apply(connection) == ()
 
         repository = StateRepository(connection)

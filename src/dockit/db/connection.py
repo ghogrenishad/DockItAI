@@ -16,6 +16,7 @@ class StateDatabaseConnection(sqlite3.Connection):
 
     source_database_path: Path
     state_database_path: Path
+    unified_authoritative_database: bool
 
 
 class SourceDatabaseConnection(sqlite3.Connection):
@@ -133,6 +134,7 @@ def connect_state_database(
     database_path: Path,
     *,
     source_database_path: Path,
+    unified_authoritative_database: bool = False,
     busy_timeout_ms: int = DEFAULT_BUSY_TIMEOUT_MS,
 ) -> StateDatabaseConnection:
     """Open DockIt's writable state database with its required SQLite rules."""
@@ -142,7 +144,7 @@ def connect_state_database(
 
     canonical_source_path = source_database_path.resolve()
     canonical_state_path = database_path.resolve()
-    if canonical_state_path == canonical_source_path:
+    if canonical_state_path == canonical_source_path and not unified_authoritative_database:
         raise ValueError("state database path must be different from source database path")
 
     canonical_state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -154,14 +156,16 @@ def connect_state_database(
     try:
         connection.source_database_path = canonical_source_path
         connection.state_database_path = canonical_state_path
+        connection.unified_authoritative_database = unified_authoritative_database
         connection.execute(f"PRAGMA busy_timeout = {busy_timeout_ms}")
         connection.execute("PRAGMA foreign_keys = ON")
         foreign_keys_enabled = connection.execute("PRAGMA foreign_keys").fetchone()
         if foreign_keys_enabled is None or foreign_keys_enabled[0] != 1:
             raise RuntimeError("SQLite foreign-key enforcement could not be enabled")
-        journal_mode = connection.execute("PRAGMA journal_mode = WAL").fetchone()
-        if journal_mode is None or str(journal_mode[0]).lower() != "wal":
-            raise RuntimeError("SQLite WAL mode could not be enabled for state database")
+        if not unified_authoritative_database:
+            journal_mode = connection.execute("PRAGMA journal_mode = WAL").fetchone()
+            if journal_mode is None or str(journal_mode[0]).lower() != "wal":
+                raise RuntimeError("SQLite WAL mode could not be enabled for state database")
         return connection
     except BaseException:
         connection.close()
@@ -179,7 +183,10 @@ def is_state_database_connection(connection: sqlite3.Connection) -> bool:
             Path(str(row[2])).resolve() for row in database_rows if row[1] == "main"
         )
         return (
-            connection.source_database_path != connection.state_database_path
+            (
+                connection.unified_authoritative_database
+                or connection.source_database_path != connection.state_database_path
+            )
             and connection.state_database_path == main_database_path
         )
     except (AttributeError, sqlite3.Error, StopIteration):

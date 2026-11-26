@@ -48,6 +48,10 @@ class Settings(BaseSettings):
         default=Path("data/dockit_state.db"),
         validation_alias="DOCKIT_STATE_DATABASE_PATH",
     )
+    unified_authoritative_database: bool = Field(
+        default=True,
+        validation_alias="DOCKIT_UNIFIED_AUTHORITATIVE_DATABASE",
+    )
 
     redis_url: str | None = Field(
         default=None,
@@ -89,7 +93,9 @@ class Settings(BaseSettings):
         self.source_database_path = self._absolute_path(self.source_database_path)
         self.state_database_path = self._absolute_path(self.state_database_path)
 
-        if self.source_database_path == self.state_database_path:
+        if self.unified_authoritative_database:
+            self.state_database_path = self.source_database_path
+        elif self.source_database_path == self.state_database_path:
             raise ValueError("source and state database paths must be different")
 
         if self.environment is Environment.PRODUCTION:

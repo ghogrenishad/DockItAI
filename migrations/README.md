@@ -1,7 +1,8 @@
 # Application migrations
 
-This directory contains only ordered, additive migrations for the DockIt-owned
-state database. The SetuHaul source database is never migrated.
+This directory contains ordered, additive DockIt-owned migrations. In unified
+authoritative mode, those tables share the appointment database transaction;
+the operational schema remains owned by SetuHaul.
 
 Use the filename format `N_descriptive_name.sql`, where `N` is a unique positive
 integer (for example, `1_initial_state.sql`). SQL is applied in numeric order,
@@ -12,7 +13,7 @@ add a later corrective migration instead of editing or deleting the original.
 The migration runner owns transaction boundaries. Do not include `BEGIN`,
 `COMMIT`, `ROLLBACK`, `SAVEPOINT`, or `RELEASE` statements in a migration.
 
-`1_initial_state.sql` creates only DockIt-owned persistence primitives: local
+`1_initial_state.sql` creates DockIt-owned persistence primitives: local
 holds, idempotency records, audit events, and references to source conversations.
 It does not copy or modify SetuHaul appointments, slots, messages, or contacts.
 `2_hold_option_delivery_timing.sql` records when options were shown and whether

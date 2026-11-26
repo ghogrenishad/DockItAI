@@ -10,15 +10,16 @@ inputs. The database guide's historical filename is
 compatible database and configure `DOCKIT_SOURCE_DATABASE_PATH` when it is not
 at the default path.
 
-SetuHaul owns this database. DockIt opens it using SQLite `mode=ro` and enables
-`query_only`; it never runs migrations, DDL, or writes against it. The source
-connection is only for reading operational state. DockIt keeps its own mutable
-state in `DOCKIT_STATE_DATABASE_PATH`.
+SetuHaul owns the operational tables. DockIt opens ordinary lookup connections
+using SQLite `mode=ro` and enables `query_only`. The confirmed booking workflow
+uses one separate unified authoritative connection to the same database: it may
+apply DockIt-owned migrations and atomically update `appointments` after a
+driver confirms a held option. The LLM never receives direct SQL access.
 
-At startup, the lifecycle opens the source read-only, opens the distinct
-DockIt-owned state database, validates the required source relations and
-columns, and applies pending state migrations. Canonical path checks prevent
-source and state from resolving to the same database file.
+At startup, the lifecycle opens a source read-only connection and a unified
+authoritative connection, validates the required source relations and columns,
+and applies pending DockIt-owned migrations. In unified mode, appointments,
+holds, idempotency records, and audits share one transaction.
 It intentionally does not use snapshot row counts as a production compatibility
 check: operational rows are expected to change while the contract remains
 stable.
@@ -75,11 +76,9 @@ Migration `1_initial_state.sql` creates these independent state tables:
   local hold.
 - `_dockit_schema_migrations` — runner-owned migration version/checksum data.
 
-There are no foreign keys from the state database to the source database:
-SQLite cannot enforce referential integrity across the deliberately separate
-connections. A workflow must treat source IDs as opaque references, reread the
-source before it makes a promise, and persist its local changes with
-`BEGIN IMMEDIATE`.
+The booking workflow must still reread capacity before it makes a promise and
+uses `BEGIN IMMEDIATE` for the authoritative appointment, hold, idempotency,
+and audit transaction. Read-only lookup paths remain separated from mutation.
 
 ## Migration recovery
 

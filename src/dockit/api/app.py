@@ -30,6 +30,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         state_connection = connect_state_database(
             settings.state_database_path,
             source_database_path=settings.source_database_path,
+            unified_authoritative_database=settings.unified_authoritative_database,
         )
     except BaseException:
         source_connection.close()

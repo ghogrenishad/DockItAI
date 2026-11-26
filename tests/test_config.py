@@ -14,6 +14,7 @@ def test_database_paths_are_resolved_and_separate() -> None:
     settings = Settings(
         DOCKIT_SOURCE_DATABASE_PATH="fixtures/source.db",
         DOCKIT_STATE_DATABASE_PATH="fixtures/state.db",
+        DOCKIT_UNIFIED_AUTHORITATIVE_DATABASE=False,
     )
 
     assert settings.source_database_path == BASE_DIR / "fixtures/source.db"
@@ -26,14 +27,26 @@ def test_default_source_path_matches_the_supplied_setuhaul_snapshot() -> None:
     assert settings.source_database_path == BASE_DIR / "data/dockit.db"
 
 
-def test_same_source_and_state_database_is_rejected(tmp_path: Path) -> None:
+def test_same_source_and_state_database_is_rejected_when_unified_mode_is_disabled(
+    tmp_path: Path,
+) -> None:
     database_path = tmp_path / "shared.db"
 
     with pytest.raises(ValidationError, match="must be different"):
         Settings(
             DOCKIT_SOURCE_DATABASE_PATH=database_path,
             DOCKIT_STATE_DATABASE_PATH=database_path,
+            DOCKIT_UNIFIED_AUTHORITATIVE_DATABASE=False,
         )
+
+
+def test_unified_authoritative_database_uses_the_source_path() -> None:
+    settings = Settings(
+        DOCKIT_SOURCE_DATABASE_PATH="fixtures/source.db",
+        DOCKIT_STATE_DATABASE_PATH="fixtures/ignored-state.db",
+    )
+
+    assert settings.state_database_path == BASE_DIR / "fixtures/source.db"
 
 
 def test_production_requires_future_identity_and_runtime_configuration() -> None:

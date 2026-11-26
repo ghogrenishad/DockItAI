@@ -23,7 +23,8 @@ def test_settings(tmp_path: Path) -> Settings:
     return Settings(
         environment=Environment.TEST,
         source_database_path=source_path,
-        state_database_path=tmp_path / "dockit_state.db",
+        state_database_path=source_path,
+        unified_authoritative_database=True,
         log_json=False,
     )
 
