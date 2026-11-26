@@ -30,7 +30,7 @@ This directory is the durable hand-off history for completed implementation step
 | 1 — Foundation | complete | [01 — Application foundation](./01-application-foundation.md) | Safe to complete independently; booking/integration work remains gated by Step 0 |
 | 2 — Persistence | complete | [02 — Persistence and source-data boundary](./02-persistence-source-data.md) | Safe seed-data access confirmed; booking authority remains a Step 0 decision |
 | 3 — Contracts/policy | complete | [03 — Contracts, policy, and state machine](./03-contracts-policy-state-machine.md) | Local-only policy complete; booking authority remains a Step 0/5 decision |
-| 4 — Feasibility | pending | — | Steps 0–3 |
+| 4 — Feasibility | complete | [04 — Deterministic feasibility](./04-deterministic-feasibility.md) | Proposal-only CP-SAT complete; booking authority remains a Step 0/5 decision |
 | 5 — Workflows | pending | — | Steps 0–4 |
 | 6 — Identity/protections | pending | — | Step 0 and workflow contracts |
 | 7 — Conversation | pending | — | Steps 4–6 |

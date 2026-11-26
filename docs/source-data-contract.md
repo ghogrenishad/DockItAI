@@ -39,20 +39,27 @@ stable.
 
 ## Stable read operations
 
-Step 2 intentionally provides only the driver-scoped reads needed to resolve a
-conversation to an existing source shipment. They are parameterized and no
-generic SQL interface is exposed to application layers.
+The repository exposes parameterized reads only; no generic SQL interface is
+available to application layers. Driver-scoped reads resolve a conversation to
+an existing source shipment. Step 4 adds facility-wide reads for the pure
+scheduler adapter.
 
 | Operation | Source relation | Stable ordering / purpose |
 | --- | --- | --- |
 | `list_driver_shipment_summaries(driver_id)` | `v_inbound_operational_state` | `effective_eta_ts`, `shipment_id`; lists a driver's shipment, facility, priority, appointment, slot, and current queue summary. |
 | `get_driver_shipment_snapshot(driver_id, shipment_id)` | `v_inbound_operational_state` | The same fields for one shipment only when it belongs to the supplied driver. |
+| `get_scheduling_facility(facility_id)` | `facilities` | Active facility timezone, hours, and default duration. |
+| `list_scheduling_shipments(facility_id)` | `shipments`, `vehicles`, `v_latest_eta`, `facility_checkins` | Active facility demand with ETA confidence, equipment, weight, and yard state. |
+| `list_scheduling_slots(facility_id)` | `appointment_slots`, `docks`, `appointments` | Every slot with dock capability and active occupancy. |
+| `list_scheduling_appointments(facility_id)` | `appointments`, `shipments`, `appointment_slots`, `v_latest_eta` | Current active appointments eligible to remain fixed or become an approval-only proposal. |
+| `list_scheduling_rules(facility_id)` | `facility_rules` | Active facility policy values. |
+| `list_scheduling_dock_events(facility_id)` | `dock_status_events`, `docks` | Event windows used to block conflicting dock capacity. |
 
-The repository verifies the view has the required identifiers, source status,
-ETA, current appointment/slot, and queue columns. Input identifiers are values,
-not SQL fragments. It returns primitive source values only; it does not silently
-apply scheduling, capacity, authorization, or booking policy. Step 4 adds the
-separate facility-wide scheduling reads once its policy contracts are defined.
+The repository verifies the driver read contract at startup and validates the
+additional source relations lazily when a scheduling read is requested. Input
+identifiers are values, not SQL fragments. It returns primitive source values
+only; it does not silently apply scheduling, capacity, authorization, or
+booking policy.
 
 ## DockIt-owned state
 
