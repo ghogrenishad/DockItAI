@@ -1,0 +1,91 @@
+<div id="cp-sat-allocation-explainer" aria-live="polite">
+  <h2>CP-SAT allocation: an illustrative three-request batch</h2>
+  <div class="nav nav-pills" role="tablist" aria-label="CP-SAT stages">
+    <button class="nav-link active" id="cp-step-inputs" role="tab" aria-controls="cp-panel-inputs" aria-selected="true" type="button">1. Candidates</button>
+    <button class="nav-link" id="cp-step-rules" role="tab" aria-controls="cp-panel-rules" aria-selected="false" type="button">2. Hard rules</button>
+    <button class="nav-link" id="cp-step-solve" role="tab" aria-controls="cp-panel-solve" aria-selected="false" type="button">3. Best allocation</button>
+  </div>
+
+  <div id="cp-panel-inputs" role="tabpanel" aria-labelledby="cp-step-inputs">
+    <div class="viz-grid">
+      <section class="card">
+        <h3>Requests</h3>
+        <table class="table table-sm">
+          <thead><tr><th>Request</th><th>Priority</th><th>ETA</th><th>Dock</th></tr></thead>
+          <tbody>
+            <tr><td>Critical C</td><td>Critical</td><td>11:25</td><td>Standard</td></tr>
+            <tr><td>High H</td><td>High</td><td>11:20</td><td>Standard</td></tr>
+            <tr><td>Normal N</td><td>Normal</td><td>11:10</td><td>Standard</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card">
+        <h3>Open compatible slots</h3>
+        <table class="table table-sm">
+          <thead><tr><th>Slot</th><th>Window</th><th>Dock</th></tr></thead>
+          <tbody>
+            <tr><td>S1</td><td>11:30–12:30</td><td>Standard</td></tr>
+            <tr><td>S2</td><td>12:30–13:30</td><td>Standard</td></tr>
+            <tr><td>S3</td><td>13:30–14:30</td><td>Standard</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </div>
+
+  <div id="cp-panel-rules" role="tabpanel" aria-labelledby="cp-step-rules" hidden>
+    <section class="card">
+      <h3>Every candidate pairing becomes a yes/no solver decision</h3>
+      <table class="table table-sm">
+        <thead><tr><th>Rule</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td>One request uses at most one slot</td><td>No duplicate allocation</td></tr>
+          <tr><td>One slot serves at most one request</td><td>No conflicting promise</td></tr>
+          <tr><td>Slot starts at or after the reliable ETA</td><td>No impossible arrival</td></tr>
+          <tr><td>Dock type, refrigeration, and weight must match</td><td>No incompatible dock</td></tr>
+          <tr><td>Blocked, occupied, or closed slots are excluded</td><td>Existing commitments stay protected</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <div id="cp-panel-solve" role="tabpanel" aria-labelledby="cp-step-solve" hidden>
+    <div class="viz-grid">
+      <section class="card">
+        <h3>Feasible allocation</h3>
+        <table class="table table-sm">
+          <thead><tr><th>Request</th><th>Selected slot</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td>Critical C</td><td>S1 · 11:30</td><td>Highest priority, first feasible</td></tr>
+            <tr><td>High H</td><td>S2 · 12:30</td><td>Next best feasible</td></tr>
+            <tr><td>Normal N</td><td>S3 · 13:30</td><td>Next best feasible</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card">
+        <h3>What CP-SAT does</h3>
+        <p>It searches the valid combinations, rejects every rule-breaking combination, then chooses the highest-ranked remaining allocation.</p>
+        <p class="text-muted">The ranking order is a business decision; the solver enforces it consistently.</p>
+      </section>
+    </div>
+  </div>
+</div>
+<script>
+  (() => {
+    const root = document.getElementById("cp-sat-allocation-explainer");
+    const tabs = [...root.querySelectorAll('[role="tab"]')];
+    const panels = [...root.querySelectorAll('[role="tabpanel"]')];
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        tabs.forEach((candidate) => {
+          const selected = candidate === tab;
+          candidate.classList.toggle("active", selected);
+          candidate.setAttribute("aria-selected", String(selected));
+        });
+        panels.forEach((panel) => {
+          panel.hidden = panel.id !== tab.getAttribute("aria-controls");
+        });
+      });
+    });
+  })();
+</script>
