@@ -1,0 +1,39 @@
+# DockIt implementation record protocol
+
+This directory is the durable hand-off history for completed implementation steps. It supports later context recovery without retaining secrets, tokens, PII, private database rows, or hidden instructions.
+
+## Rules
+
+1. Keep this index current.
+2. After implementing and validating a numbered plan step, add exactly one record named NN-short-slug.md, for example 01-application-foundation.md.
+3. An active record may be updated. A completed record is immutable history; a later record corrects or supersedes it with a link back.
+4. Summarize relevant user decisions and chat context; never copy credentials, JWTs, PII, hidden prompts, or raw production data.
+5. The tool ledger must record the tool/action, sanitized command/action, purpose, and result. Redact credentials, authorization headers, tokenized URLs, and sensitive identifiers.
+
+## Required record sections
+
+- Status, completion time, owner, and implementation-plan step.
+- Scope, roadmap items, and acceptance criteria.
+- Relevant chat context and confirmed decisions.
+- Facts versus assumptions.
+- Design, contract, state, migration, and security/operational impact.
+- Changed files and symbols.
+- Tool/command ledger: tool/action, sanitized command/action, purpose, result.
+- Tests/validation evidence and output summary.
+- Limitations, risks, follow-up decisions, Git state/artifacts, and exact next step.
+
+## Status index
+
+| Plan step | Status | Completion record | Blocker/dependency |
+| --- | --- | --- | --- |
+| 0 — Roadmap reconciliation | in progress | — | Booking/data/scheduling/security/pilot decisions remain unresolved |
+| 1 — Foundation | complete | [01 — Application foundation](./01-application-foundation.md) | Safe to complete independently; booking/integration work remains gated by Step 0 |
+| 2 — Persistence | pending | — | Steps 0–1 and safe seed-data access |
+| 3 — Contracts/policy | pending | — | Steps 0–2 |
+| 4 — Feasibility | pending | — | Steps 0–3 |
+| 5 — Workflows | pending | — | Steps 0–4 |
+| 6 — Identity/protections | pending | — | Step 0 and workflow contracts |
+| 7 — Conversation | pending | — | Steps 4–6 |
+| 8 — API/UI | pending | — | Steps 5–7 |
+| 9 — Operations/deployment | pending | — | Target decision and prior service steps |
+| 10 — Acceptance | pending | — | All applicable delivery steps |
