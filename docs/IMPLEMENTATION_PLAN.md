@@ -1,6 +1,6 @@
 # DockIt AI implementation plan
 
-**Status:** Steps 1–3 complete; Step 0 operational decisions remain open  
+**Status:** Steps 1–4 complete; Step 0 operational decisions remain open  
 **Prepared:** 2026-11-26  
 **Planning model:** GPT-5.6-Terra (Extra High)
 
@@ -12,9 +12,10 @@ The delivery roadmap was reviewed in Notion on 2026-11-26. It confirms the
 product boundary, MVP UI, and key technology choices below. It does not define
 the remaining operational and integration details needed to safely implement
 booking, so Step 0 remains an in-progress decision gate. The service foundation
-(Step 1), persistence/source boundary (Step 2), and local-only contracts/policy
-(Step 3) are implemented. Booking authority, scheduling policy, and external-
-integration implementation remain gated by the unresolved operational decisions.
+(Step 1), persistence/source boundary (Step 2), local-only contracts/policy
+(Step 3), and deterministic feasibility (Step 4) are implemented. Booking
+authority and external-integration implementation remain gated by the unresolved
+operational decisions.
 
 ## Governing decisions
 
@@ -150,6 +151,17 @@ because authority to create a reservation remains unresolved. Step record:
 **Exit:** layers share explicit policy contracts and cannot bypass valid transitions.
 
 ## Step 4 — deterministic feasibility
+
+**Status:** Complete. A pure evaluator filters and ranks options with explicit
+rejection reasons. It requires high-confidence ETA, preserves existing capacity,
+enforces compatibility, full-slot duration, dock events, and hours/cutoffs.
+Bounded CP-SAT is a proposal-only fallback for contention or a blocked direct
+request; it may propose moving only a strictly lower-priority pending or
+confirmed appointment, subject to warehouse and affected-driver approval.
+Step record: `docs/implementation/04-deterministic-feasibility.md`.
+
+**Final validation:** pytest reported 43 passed; Ruff passed; mypy passed for
+25 source files. The 17 warnings were third-party LangSmith deprecations.
 
 **Implement:**
 
