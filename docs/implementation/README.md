@@ -31,7 +31,7 @@ This directory is the durable hand-off history for completed implementation step
 | 2 — Persistence | complete | [02 — Persistence and source-data boundary](./02-persistence-source-data.md) | Safe seed-data access confirmed; booking authority remains a Step 0 decision |
 | 3 — Contracts/policy | complete | [03 — Contracts, policy, and state machine](./03-contracts-policy-state-machine.md) | Local-only policy complete; booking authority remains a Step 0/5 decision |
 | 4 — Feasibility | complete | [04 — Deterministic feasibility](./04-deterministic-feasibility.md) | Proposal-only CP-SAT complete; booking authority remains a Step 0/5 decision |
-| 5 — Workflows | pending | — | Steps 0–4 |
+| 5 — Workflows | complete | [05 — Transactional workflows](./05-transactional-workflows.md) | Authoritative unified database selected; identity/API boundaries remain pending |
 | 6 — Identity/protections | pending | — | Step 0 and workflow contracts |
 | 7 — Conversation | pending | — | Steps 4–6 |
 | 8 — API/UI | pending | — | Steps 5–7 |

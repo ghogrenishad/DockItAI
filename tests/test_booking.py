@@ -13,6 +13,7 @@ from dockit.db.connection import connect_state_database
 from dockit.db.migrations import MigrationRunner
 from dockit.db.state_repository import StateRepository
 from dockit.services.booking import BookingConflict, BookingWorkflow
+from dockit.services.workflows import OperationalWorkflow
 
 
 def _authoritative_connection(tmp_path: Path):
@@ -120,5 +121,54 @@ def test_confirmation_revalidates_slot_and_idempotency_fingerprint(tmp_path: Pat
                 request_fingerprint="fingerprint-002",
                 confirmed_at=datetime(2026, 8, 4, 4, 6, tzinfo=UTC),
             )
+    finally:
+        connection.close()
+
+
+def test_delay_proposal_hold_and_expiry_share_authoritative_audit(tmp_path: Path) -> None:
+    connection = _authoritative_connection(tmp_path)
+    try:
+        workflow = OperationalWorkflow(connection)
+        update_id = workflow.report_delay(
+            shipment_id="SHP1006",
+            actor_subject="driver:DRV006",
+            declared_eta=datetime(2026, 8, 4, 5, 50, tzinfo=UTC),
+            reported_at=datetime(2026, 8, 4, 4, 5, tzinfo=UTC),
+            reason_code="TRAFFIC",
+        )
+        assert connection.execute(
+            "SELECT declared_eta_ts FROM eta_updates WHERE eta_update_id = ?", (update_id,)
+        ).fetchone() == ("2026-08-04T05:50:00Z",)
+
+        slot_id = str(
+            connection.execute(
+                "SELECT slot_id FROM v_slot_availability "
+                "WHERE availability_status = 'AVAILABLE' LIMIT 1"
+            ).fetchone()[0]
+        )
+        proposal_id = workflow.create_proposal(
+            shipment_id="SHP1006",
+            slot_id=slot_id,
+            actor_subject="driver:DRV006",
+            created_at=datetime(2026, 8, 4, 4, 5, tzinfo=UTC),
+            requires_warehouse_approval=False,
+            requires_affected_driver_approval=False,
+        )
+        hold = workflow.create_hold(
+            shipment_id="SHP1006",
+            slot_id=slot_id,
+            actor_subject="driver:DRV006",
+            options_provided_at=datetime(2026, 8, 4, 4, 5, tzinfo=UTC),
+        )
+        assert connection.execute(
+            "SELECT proposal_status FROM booking_proposals WHERE proposal_id = ?", (proposal_id,)
+        ).fetchone() == ("PENDING_DRIVER",)
+        assert workflow.release_or_expire_holds(
+            at=datetime(2026, 8, 4, 4, 10, tzinfo=UTC)
+        ) == (hold.hold_id,)
+        assert connection.execute(
+            "SELECT status FROM slot_holds WHERE hold_id = ?", (hold.hold_id,)
+        ).fetchone() == ("EXPIRED",)
+        assert connection.execute("SELECT COUNT(*) FROM audit_events").fetchone() == (4,)
     finally:
         connection.close()

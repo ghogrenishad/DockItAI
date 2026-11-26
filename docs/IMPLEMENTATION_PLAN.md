@@ -176,6 +176,16 @@ Step record: `docs/implementation/04-deterministic-feasibility.md`.
 
 ## Step 5 — transactional operational workflows
 
+**Status:** Complete for the selected unified authoritative SQLite database.
+Delay reports, proposals, holds, expiry, audit, idempotency, and confirmed
+appointment replacements execute through `BEGIN IMMEDIATE`. A confirmation
+cancels only the same shipment's previous movable appointment and inserts the
+new `CONFIRMED` appointment; it never frees capacity by cancelling another
+shipment. Step record: `docs/implementation/05-transactional-workflows.md`.
+
+**Final validation:** pytest reported 47 passed; Ruff passed; mypy passed for
+27 source files. The 17 warnings were third-party LangSmith deprecations.
+
 **Implement:**
 
 - Services for delay reporting, appointment lookup, option search, hold create/revalidate/release, proposal, explicit confirm, cancel, and expiry.
