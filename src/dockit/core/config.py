@@ -41,7 +41,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("DOCKIT_ENV", "DOCKIT_ENVIRONMENT"),
     )
     source_database_path: Path = Field(
-        default=Path("data/setuhaul_freight_operations.db"),
+        default=Path("data/dockit.db"),
         validation_alias=AliasChoices("DOCKIT_SOURCE_DATABASE_PATH", "DOCKIT_DATABASE_PATH"),
     )
     state_database_path: Path = Field(
