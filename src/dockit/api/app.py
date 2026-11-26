@@ -20,7 +20,7 @@ from dockit.db.state_repository import StateRepository
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Open read-only source data and migrate DockIt-owned workflow state."""
 
     settings: Settings = app.state.settings

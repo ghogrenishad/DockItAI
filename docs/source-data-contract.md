@@ -61,7 +61,8 @@ Migration `1_initial_state.sql` creates these independent state tables:
 - `conversation_references` — mappings to source thread/shipment identifiers;
   source messages and contacts are not copied.
 - `slot_holds` — local, unconfirmed holds. A partial unique index prevents two
-  active DockIt holds for the same source slot.
+  active DockIt holds for the same source slot. It records the option-delivery
+  time and whether the one chat reminder was sent; these are never source data.
 - `idempotency_records` — actor- and operation-scoped request identities.
 - `audit_events` — immutable application audit entries, optionally tied to a
   local hold.

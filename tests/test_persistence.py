@@ -357,7 +357,7 @@ def test_initial_state_migration_isolated_from_source_and_supports_state_reposit
     connection = _connect_state(tmp_path / "state.db")
     try:
         runner = MigrationRunner(BASE_DIR / "migrations")
-        assert [migration.version for migration in runner.apply(connection)] == [1]
+        assert [migration.version for migration in runner.apply(connection)] == [1, 2]
         assert runner.apply(connection) == ()
 
         repository = StateRepository(connection)
@@ -377,7 +377,16 @@ def test_initial_state_migration_isolated_from_source_and_supports_state_reposit
                 actor_subject="driver:DRV006",
                 conversation_reference_id="conversation-1",
                 created_at_utc="2026-08-04T04:04:00Z",
+                options_provided_at_utc="2026-08-04T04:04:00Z",
                 expires_at_utc="2026-08-04T04:09:00Z",
+            )
+            assert repository.record_hold_reminder(
+                hold_id="hold-1",
+                reminder_sent_at_utc="2026-08-04T04:06:30Z",
+            )
+            assert not repository.record_hold_reminder(
+                hold_id="hold-1",
+                reminder_sent_at_utc="2026-08-04T04:06:31Z",
             )
             repository.record_idempotency_key(
                 actor_subject="driver:DRV006",
@@ -402,6 +411,10 @@ def test_initial_state_migration_isolated_from_source_and_supports_state_reposit
         assert connection.execute("SELECT COUNT(*) FROM slot_holds").fetchone() == (1,)
         assert connection.execute("SELECT COUNT(*) FROM idempotency_records").fetchone() == (1,)
         assert connection.execute("SELECT COUNT(*) FROM audit_events").fetchone() == (1,)
+        assert connection.execute(
+            "SELECT options_provided_at_utc, reminder_sent_at_utc "
+            "FROM slot_holds WHERE hold_id = 'hold-1'"
+        ).fetchone() == ("2026-08-04T04:04:00Z", "2026-08-04T04:06:30Z")
 
         with pytest.raises(sqlite3.IntegrityError, match="UNIQUE"):
             with immediate_transaction(connection):
@@ -412,6 +425,7 @@ def test_initial_state_migration_isolated_from_source_and_supports_state_reposit
                     actor_subject="driver:DRV010",
                     conversation_reference_id=None,
                     created_at_utc="2026-08-04T04:05:00Z",
+                    options_provided_at_utc="2026-08-04T04:05:00Z",
                     expires_at_utc="2026-08-04T04:10:00Z",
                 )
         with pytest.raises(sqlite3.IntegrityError, match="FOREIGN KEY"):

@@ -29,7 +29,7 @@ This directory is the durable hand-off history for completed implementation step
 | 0 — Roadmap reconciliation | in progress | — | Booking authority, scheduling/security policy, escalation owner, deployment, and pilot decisions remain unresolved; tracked source contract is established |
 | 1 — Foundation | complete | [01 — Application foundation](./01-application-foundation.md) | Safe to complete independently; booking/integration work remains gated by Step 0 |
 | 2 — Persistence | complete | [02 — Persistence and source-data boundary](./02-persistence-source-data.md) | Safe seed-data access confirmed; booking authority remains a Step 0 decision |
-| 3 — Contracts/policy | pending | — | Steps 0–2 |
+| 3 — Contracts/policy | complete | [03 — Contracts, policy, and state machine](./03-contracts-policy-state-machine.md) | Local-only policy complete; booking authority remains a Step 0/5 decision |
 | 4 — Feasibility | pending | — | Steps 0–3 |
 | 5 — Workflows | pending | — | Steps 0–4 |
 | 6 — Identity/protections | pending | — | Step 0 and workflow contracts |

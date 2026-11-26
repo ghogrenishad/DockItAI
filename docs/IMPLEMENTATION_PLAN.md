@@ -1,6 +1,6 @@
 # DockIt AI implementation plan
 
-**Status:** Steps 1–2 complete; Step 0 operational decisions remain open  
+**Status:** Steps 1–3 complete; Step 0 operational decisions remain open  
 **Prepared:** 2026-11-26  
 **Planning model:** GPT-5.6-Terra (Extra High)
 
@@ -12,9 +12,9 @@ The delivery roadmap was reviewed in Notion on 2026-11-26. It confirms the
 product boundary, MVP UI, and key technology choices below. It does not define
 the remaining operational and integration details needed to safely implement
 booking, so Step 0 remains an in-progress decision gate. The service foundation
-(Step 1) and persistence/source boundary (Step 2) are implemented. Booking
-authority, scheduling policy, and external-integration implementation remain
-gated by the unresolved operational decisions.
+(Step 1), persistence/source boundary (Step 2), and local-only contracts/policy
+(Step 3) are implemented. Booking authority, scheduling policy, and external-
+integration implementation remain gated by the unresolved operational decisions.
 
 ## Governing decisions
 
@@ -127,6 +127,17 @@ Runtime environments must provision the source DB or configure
 **Exit:** DockIt state is reproducible and isolated from operating data.
 
 ## Step 3 — contracts, policy, and state machine
+
+**Status:** Complete under documented provisional local-only policy. Contracts
+normalize instants to UTC, require an explicit facility timezone for display,
+scope idempotency to actor/operation/key, start a five-minute local hold when
+chat presents options, prompt once at 2.5 minutes, and guard a local exception
+lifecycle. `CONFIRMED` is intentionally absent from the workflow state machine
+because authority to create a reservation remains unresolved. Step record:
+`docs/implementation/03-contracts-policy-state-machine.md`.
+
+**Final validation:** pytest reported 35 passed; Ruff passed; mypy passed for
+21 source files. The 17 warnings were third-party LangSmith deprecations.
 
 **Implement:**
 
