@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from dockit.db.connection import StateDatabaseConnection, immediate_transaction
+from dockit.services.slot_validation import SlotFeasibilityRevalidator, SlotNotFeasible
 
 
 class WorkflowConflict(RuntimeError):
@@ -23,10 +24,15 @@ class HoldResult:
 class OperationalWorkflow:
     """Make holds, proposals, delay reports, expiry, and audit writes atomic."""
 
-    def __init__(self, connection: StateDatabaseConnection) -> None:
+    def __init__(
+        self,
+        connection: StateDatabaseConnection,
+        slot_revalidator: SlotFeasibilityRevalidator | None = None,
+    ) -> None:
         if not connection.unified_authoritative_database:
             raise ValueError("operational workflow requires the unified authoritative database")
         self._connection = connection
+        self._slot_revalidator = slot_revalidator
 
     def report_delay(
         self,
@@ -84,8 +90,17 @@ class OperationalWorkflow:
                 "SELECT 1 FROM appointment_slots WHERE slot_id = ? AND slot_status = 'OPEN'",
                 (slot_id,),
             ).fetchone()
-            if occupied is not None or open_slot is None:
+            active_hold = self._connection.execute(
+                "SELECT 1 FROM slot_holds WHERE source_slot_id = ? AND status = 'ACTIVE'",
+                (slot_id,),
+            ).fetchone()
+            if occupied is not None or active_hold is not None or open_slot is None:
                 raise WorkflowConflict("slot is no longer available")
+            if self._slot_revalidator is not None:
+                try:
+                    self._slot_revalidator.validate(shipment_id=shipment_id, slot_id=slot_id)
+                except SlotNotFeasible as error:
+                    raise WorkflowConflict(str(error)) from error
             hold_id = f"HOLD-DKT-{uuid4().hex}"
             self._connection.execute(
                 """
@@ -98,6 +113,36 @@ class OperationalWorkflow:
             )
             self._audit(actor_subject, "hold_created", "slot_hold", hold_id, created, hold_id)
             return HoldResult(hold_id, expires)
+
+    def release_hold(
+        self,
+        *,
+        hold_id: str,
+        actor_subject: str,
+        released_at: datetime,
+    ) -> None:
+        """Release one active local hold owned by the requesting principal."""
+
+        timestamp = _utc_text(released_at)
+        with immediate_transaction(self._connection):
+            row = self._connection.execute(
+                "SELECT actor_subject, status FROM slot_holds WHERE hold_id = ?",
+                (hold_id,),
+            ).fetchone()
+            if row is None:
+                raise WorkflowConflict("hold does not exist")
+            if row[0] != actor_subject:
+                raise WorkflowConflict("actor does not own this hold")
+            if row[1] == "RELEASED":
+                return
+            if row[1] != "ACTIVE":
+                raise WorkflowConflict("hold is not active")
+            self._connection.execute(
+                "UPDATE slot_holds SET status = 'RELEASED', finalized_at_utc = ? "
+                "WHERE hold_id = ?",
+                (timestamp, hold_id),
+            )
+            self._audit(actor_subject, "hold_released", "slot_hold", hold_id, timestamp, hold_id)
 
     def create_proposal(
         self,

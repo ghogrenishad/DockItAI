@@ -23,9 +23,10 @@ dependencies = [
 
 [project.scripts]
 dockit-api = "dockit.api.main:run"
+dockit-ui = "dockit.ui.streamlit_app:run"
 
 [project.optional-dependencies]
-ui = ["streamlit>=1.42"]
+ui = ["httpx>=0.28", "streamlit>=1.42"]
 dev = [
     "httpx>=0.28",
     "mypy>=1.14",

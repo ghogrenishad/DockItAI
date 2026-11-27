@@ -233,6 +233,143 @@ class SlotHold(ContractModel):
         return self
 
 
+class DelayReportRequest(ContractModel):
+    """HTTP input whose actor identity is taken from the authenticated principal."""
+
+    declared_eta_at_utc: UtcTimestamp | None = None
+    reported_delay_minutes: int | None = Field(default=None, gt=0)
+    reason_code: str | None = Field(default=None, max_length=64)
+    note: str | None = Field(default=None, max_length=2_000)
+
+    @model_validator(mode="after")
+    def require_arrival_information(self) -> DelayReportRequest:
+        if self.declared_eta_at_utc is None and self.reported_delay_minutes is None:
+            raise ValueError(
+                "a delay report requires declared_eta_at_utc or reported_delay_minutes"
+            )
+        return self
+
+
+class DelayReportResponse(ContractModel):
+    """Accepted driver delay update written by the authoritative workflow."""
+
+    update_id: EntityId
+    shipment_id: ShipmentId
+    declared_eta_at_utc: UtcTimestamp
+
+
+class ShipmentSnapshotResponse(ContractModel):
+    """Driver-scoped operational snapshot exposed by the versioned API."""
+
+    shipment_id: ShipmentId
+    driver_id: DriverId
+    destination_facility_id: FacilityId
+    priority_code: str = Field(min_length=1, max_length=32)
+    required_dock_type: str = Field(min_length=1, max_length=32)
+    current_status: str = Field(min_length=1, max_length=64)
+    effective_eta_at_utc: UtcTimestamp | None = None
+    appointment_id: AppointmentId | None = None
+    slot_id: SlotId | None = None
+    slot_start_at_utc: UtcTimestamp | None = None
+    slot_end_at_utc: UtcTimestamp | None = None
+    planned_dock_code: str | None = Field(default=None, max_length=32)
+    gate_in_at_utc: UtcTimestamp | None = None
+    queue_state: str | None = Field(default=None, max_length=64)
+    queue_position: int | None = Field(default=None, ge=0)
+
+
+class DockOption(ContractModel):
+    """A deterministic, non-binding option returned by the option-search API."""
+
+    option_id: OptionId
+    shipment_id: ShipmentId
+    facility_id: FacilityId
+    slot_id: SlotId
+    dock_code: str = Field(min_length=1, max_length=32)
+    slot_start_at_utc: UtcTimestamp
+    slot_end_at_utc: UtcTimestamp
+    requires_operations_approval: bool = False
+    explanations: tuple[OptionExplanation, ...] = Field(min_length=1)
+
+
+class OptionsResponse(ContractModel):
+    """Stable option-search response with transparent rejection reasons."""
+
+    shipment_id: ShipmentId
+    facility_id: FacilityId
+    observed_at_utc: UtcTimestamp
+    status: str = Field(min_length=1, max_length=64)
+    options: tuple[DockOption, ...] = Field(default_factory=tuple)
+    rejection_reasons: dict[SlotId, tuple[str, ...]] = Field(default_factory=dict)
+
+
+class HoldCreateRequest(ContractModel):
+    """Request to create a short-lived local hold for one selected slot."""
+
+    slot_id: SlotId
+    options_observed_at_utc: UtcTimestamp
+
+
+class ProposalCreateRequest(ContractModel):
+    """Request to persist a non-booking proposal for a selected slot."""
+
+    slot_id: SlotId
+
+
+class HoldResponse(ContractModel):
+    """A local hold that still requires explicit confirmation."""
+
+    hold_id: HoldId
+    shipment_id: ShipmentId
+    slot_id: SlotId
+    status: HoldStatus
+    created_at_utc: UtcTimestamp
+    expires_at_utc: UtcTimestamp
+    requires_confirmation: bool = True
+
+
+class ProposalResponse(ContractModel):
+    """A persisted proposal that is not itself a reservation."""
+
+    proposal_id: EntityId
+    shipment_id: ShipmentId
+    slot_id: SlotId
+    status: str = Field(min_length=1, max_length=64)
+    requires_warehouse_approval: bool
+    requires_affected_driver_approval: bool
+
+
+class BookingResponse(ContractModel):
+    """Authoritative confirmation result returned after server revalidation."""
+
+    appointment_id: AppointmentId
+    slot_id: SlotId
+    status: AppointmentStatus = AppointmentStatus.CONFIRMED
+    idempotent_replay: bool = False
+
+
+class HoldCancellationResponse(ContractModel):
+    """Result of releasing a local hold before it is confirmed."""
+
+    hold_id: HoldId
+    status: HoldStatus = HoldStatus.RELEASED
+
+
+class ChatMessageRequest(ContractModel):
+    """One user message sent to the constrained conversation boundary."""
+
+    message: str = Field(min_length=1, max_length=2_000)
+
+
+class ChatMessageResponse(ContractModel):
+    """Conversation response without exposing internal prompts or credentials."""
+
+    thread_id: EntityId
+    message: str = Field(min_length=1, max_length=4_000)
+    degraded: bool = False
+    awaiting: str | None = Field(default=None, max_length=32)
+
+
 class IdempotencyScope(ContractModel):
     """A request identity scoped to one actor and one mutation operation."""
 
@@ -281,10 +418,14 @@ class ErrorCode(StrEnum):
 
     VALIDATION_ERROR = "validation_error"
     INVALID_STATE_TRANSITION = "invalid_state_transition"
+    UNAUTHORIZED = "unauthorized"
     FORBIDDEN = "forbidden"
     NOT_FOUND = "not_found"
     CONFLICT = "conflict"
     PRECONDITION_FAILED = "precondition_failed"
+    RATE_LIMITED = "rate_limited"
+    SERVICE_UNAVAILABLE = "service_unavailable"
+    INTERNAL_ERROR = "internal_error"
 
 
 class ErrorResponse(ContractModel):

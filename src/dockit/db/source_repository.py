@@ -158,6 +158,16 @@ class SourceRepository:
         ).fetchone()
         return _record(row) if row is not None else None
 
+    def get_shipment_facility(self, shipment_id: str) -> str | None:
+        """Return the facility for one shipment for internal scheduling revalidation."""
+
+        self._validate_scheduling_contract()
+        row = self._connection.execute(
+            "SELECT destination_facility_id FROM shipments WHERE shipment_id = ?",
+            (shipment_id,),
+        ).fetchone()
+        return str(row[0]) if row is not None else None
+
     def get_scheduling_facility(self, facility_id: str) -> SourceRecord | None:
         """Return the local time and operating hours for one scheduling facility."""
 

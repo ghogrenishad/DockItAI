@@ -28,6 +28,11 @@ and `GET /api/v1` (the versioned API root). Startup opens the SetuHaul source
 database read-only and initializes DockIt-owned state; Redis, Cognito, and AWS
 integrations arrive in later delivery steps.
 
+The versioned operational API is available under `/api/v1` after authentication.
+Run the optional Streamlit pilot client with `dockit-ui` or
+`streamlit run src/dockit/ui/streamlit_app.py`; it remains an HTTP client and
+does not copy scheduling or booking policy.
+
 ## Quality checks
 
 ```bash
