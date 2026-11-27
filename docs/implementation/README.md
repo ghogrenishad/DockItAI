@@ -33,7 +33,7 @@ This directory is the durable hand-off history for completed implementation step
 | 4 — Feasibility | complete | [04 — Deterministic feasibility](./04-deterministic-feasibility.md) | Proposal-only CP-SAT complete; booking authority remains a Step 0/5 decision |
 | 5 — Workflows | complete | [05 — Transactional workflows](./05-transactional-workflows.md) | Authoritative unified database selected; identity/API boundaries remain pending |
 | 6 — Identity/protections | complete | [06 — Identity and protections](./06-identity-protections.md) | Cognito deployment values and UI origin remain operational configuration |
-| 7 — Conversation | pending | — | Steps 4–6 |
+| 7 — Conversation | complete | [07 — Constrained conversation](./07-constrained-conversation.md) | AgentCore model/runtime and failure policy remain operational configuration |
 | 8 — API/UI | pending | — | Steps 5–7 |
 | 9 — Operations/deployment | pending | — | Target decision and prior service steps |
 | 10 — Acceptance | pending | — | All applicable delivery steps |

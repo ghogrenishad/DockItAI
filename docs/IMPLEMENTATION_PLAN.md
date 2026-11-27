@@ -1,6 +1,6 @@
 # DockIt AI implementation plan
 
-**Status:** Steps 1–4 complete; Step 0 operational decisions remain open  
+**Status:** Steps 1–7 complete; Step 0 operational decisions remain open  
 **Prepared:** 2026-11-26  
 **Planning model:** GPT-5.6-Terra (Extra High)
 
@@ -221,6 +221,10 @@ headers and a conservative rate limit are active. Step record:
 
 ## Step 7 — constrained conversational orchestration
 
+**Status:** Complete for the constrained service boundary. The runtime model,
+AgentCore Harness deployment, and failure/timeout values remain operational
+configuration decisions under Step 0.
+
 **Implement:**
 
 - LangChain orchestration over typed services only; no database/SQL tool access.
@@ -234,7 +238,14 @@ headers and a conservative rate limit are active. Step record:
 
 **Validate:** tool-mocked multi-turn path, ambiguity, injection, unavailable inference/Redis, authorization, confirmation, and schema-error tests.
 
+**Final validation:** pytest reported 61 passed; Ruff passed; mypy passed for
+30 source files. The 17 warnings are third-party LangSmith deprecations. Step
+record: `docs/implementation/07-constrained-conversation.md`.
+
 **Exit:** conversation aids operation but cannot dictate it.
+
+**Exact next step:** implement Step 8 versioned HTTP endpoints and the
+Streamlit pilot UI as clients of these typed boundaries.
 
 ## Step 8 — HTTP API and Streamlit pilot UI
 
@@ -296,7 +307,6 @@ Feasibility precedes booking side effects. Identity/protections precede external
 
 ## Next action
 
-Proceed to Step 3 contracts and policy while keeping unresolved booking and
-external mutation authority explicit; do not implement booking side effects
-until Step 0 decisions close. Resolve remaining Step 0 items as operational
-owners and pilot requirements are confirmed.
+Proceed to Step 8 versioned HTTP endpoints and the Streamlit pilot UI while
+keeping unresolved AgentCore deployment, booking authority, and operational
+ownership decisions explicit.
