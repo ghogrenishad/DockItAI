@@ -198,6 +198,15 @@ shipment. Step record: `docs/implementation/05-transactional-workflows.md`.
 
 ## Step 6 — identity and protections
 
+**Status:** Complete. Cognito RS256 access tokens are verified against JWKS,
+issuer, client ID, expiry, token use, groups, and a permanent subject-to-driver
+link. Browser CORS remains disabled pending an approved UI origin; security
+headers and a conservative rate limit are active. Step record:
+`docs/implementation/06-identity-protections.md`.
+
+**Final validation:** pytest reported 51 passed; Ruff passed; mypy passed for
+29 source files. The 17 warnings were third-party LangSmith deprecations.
+
 **Implement:**
 
 - Cognito JWT verification with cached JWKS and strict issuer, audience/client, algorithm, expiry, tenant, and role validation.

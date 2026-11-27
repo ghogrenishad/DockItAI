@@ -85,6 +85,10 @@ class Settings(BaseSettings):
         default=1_048_576,
         validation_alias="DOCKIT_REQUEST_BODY_MAX_BYTES",
     )
+    request_rate_limit_per_minute: PositiveInt = Field(
+        default=60,
+        validation_alias="DOCKIT_REQUEST_RATE_LIMIT_PER_MINUTE",
+    )
     server_host: str = Field(default="127.0.0.1", validation_alias="DOCKIT_SERVER_HOST")
     server_port: PositiveInt = Field(default=8000, validation_alias="DOCKIT_SERVER_PORT")
 

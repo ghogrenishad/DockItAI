@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict, deque
 from collections.abc import Awaitable, Callable
-from time import perf_counter
+from time import monotonic, perf_counter
 from uuid import UUID, uuid4
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 
 from dockit.core.logging import correlation_id
 
@@ -50,3 +51,37 @@ def _correlation_id_from(header_value: str | None) -> str:
         except ValueError:
             pass
     return str(uuid4())
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Apply baseline transport/browser protections without enabling CORS origins."""
+
+    async def dispatch(self, request: Request, call_next: RequestHandler) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+        return response
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Conservative per-process rate limit; deployment replaces it with a shared limiter."""
+
+    def __init__(self, app, *, requests_per_minute: int) -> None:  # type: ignore[no-untyped-def]
+        super().__init__(app)
+        self._requests_per_minute = requests_per_minute
+        self._requests: dict[str, deque[float]] = defaultdict(deque)
+
+    async def dispatch(self, request: Request, call_next: RequestHandler) -> Response:
+        if request.url.path in {"/healthz", "/readyz"}:
+            return await call_next(request)
+        client = request.client.host if request.client is not None else "unknown"
+        now = monotonic()
+        window = self._requests[client]
+        while window and window[0] <= now - 60:
+            window.popleft()
+        if len(window) >= self._requests_per_minute:
+            return JSONResponse({"detail": "rate limit exceeded"}, status_code=429)
+        window.append(now)
+        return await call_next(request)

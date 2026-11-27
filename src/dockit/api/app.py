@@ -9,7 +9,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from dockit import __version__
-from dockit.api.middleware import CorrelationIdMiddleware
+from dockit.api.middleware import (
+    CorrelationIdMiddleware,
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+)
 from dockit.api.routes.system import router as system_router
 from dockit.core.config import BASE_DIR, Settings, get_settings
 from dockit.core.logging import configure_logging
@@ -17,6 +21,7 @@ from dockit.db.connection import connect_source_database, connect_state_database
 from dockit.db.migrations import MigrationRunner
 from dockit.db.source_repository import SourceRepository
 from dockit.db.state_repository import StateRepository
+from dockit.services.security import AuthorizationService, CognitoAccessTokenVerifier
 
 
 @asynccontextmanager
@@ -41,6 +46,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         app.state.source_catalog = source_catalog
         app.state.source_repository = source_repository
         app.state.state_repository = StateRepository(state_connection)
+        if (
+            settings.cognito_region
+            and settings.cognito_user_pool_id
+            and settings.cognito_app_client_id
+        ):
+            app.state.authorization_service = AuthorizationService(
+                state_connection,
+                CognitoAccessTokenVerifier(
+                    region=settings.cognito_region,
+                    user_pool_id=settings.cognito_user_pool_id,
+                    app_client_id=settings.cognito_app_client_id,
+                ),
+            )
         logging.getLogger("dockit.application").info(
             "application_started",
             extra={"state_migrations_applied": len(migrations)},
@@ -64,6 +82,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.settings = resolved_settings
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests_per_minute=resolved_settings.request_rate_limit_per_minute,
+    )
     app.add_middleware(CorrelationIdMiddleware)
     app.include_router(system_router)
     return app

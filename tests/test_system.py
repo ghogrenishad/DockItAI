@@ -50,3 +50,25 @@ def test_invalid_correlation_id_is_replaced(test_settings: Settings) -> None:
         response = client.get("/healthz", headers={"X-Correlation-ID": "not-a-uuid"})
 
     assert response.headers["X-Correlation-ID"] != "not-a-uuid"
+
+
+def test_security_headers_are_present_without_permissive_cors(test_settings: Settings) -> None:
+    with TestClient(create_app(test_settings)) as client:
+        response = client.get("/api/v1", headers={"Origin": "https://untrusted.example"})
+
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["X-Frame-Options"] == "DENY"
+    assert response.headers["Referrer-Policy"] == "no-referrer"
+    assert response.headers["Content-Security-Policy"] == (
+        "default-src 'none'; frame-ancestors 'none'"
+    )
+    assert "Access-Control-Allow-Origin" not in response.headers
+
+
+def test_configured_rate_limit_excludes_health_probes(test_settings: Settings) -> None:
+    test_settings.request_rate_limit_per_minute = 1
+
+    with TestClient(create_app(test_settings)) as client:
+        assert client.get("/api/v1").status_code == 200
+        assert client.get("/api/v1").status_code == 429
+        assert client.get("/healthz").status_code == 200

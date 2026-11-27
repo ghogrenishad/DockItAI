@@ -16,6 +16,7 @@ _LEADING_SQL_COMMENTS = re.compile(
     r"\A(?:\s+|--[^\r\n]*(?:\r?\n|$)|/\*.*?\*/)*",
     re.DOTALL,
 )
+_UNIFIED_DIRECTIVE = "-- dockit: unified-authoritative"
 
 
 class MigrationError(RuntimeError):
@@ -80,7 +81,12 @@ class MigrationRunner:
 
         if not is_state_database_connection(connection):
             raise MigrationError("migrations require a DockIt state database connection")
-        migrations = self.discover()
+        migrations = tuple(
+            migration
+            for migration in self.discover()
+            if getattr(connection, "unified_authoritative_database", False)
+            or not migration.sql.lstrip().startswith(_UNIFIED_DIRECTIVE)
+        )
         self._create_tracking_table(connection)
         applied = self._load_applied(connection)
         discovered_by_version = {migration.version: migration for migration in migrations}
