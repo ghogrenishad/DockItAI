@@ -207,3 +207,7 @@ def _render_driver_workspace(st, client: DockItApiClient) -> None:  # type: igno
         response = client.send_message(thread_id, message)
         st.chat_message("user").write(message)
         st.chat_message("assistant").write(response.get("message", "No response"))
+
+
+if __name__ == "__main__":
+    run()
