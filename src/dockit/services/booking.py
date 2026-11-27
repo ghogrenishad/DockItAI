@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from dockit.db.connection import StateDatabaseConnection, immediate_transaction
+from dockit.services.slot_validation import SlotFeasibilityRevalidator, SlotNotFeasible
 
 
 class BookingError(RuntimeError):
@@ -32,10 +33,15 @@ class BookingResult:
 class BookingWorkflow:
     """Own one authoritative SQLite transaction; never accepts an LLM decision directly."""
 
-    def __init__(self, connection: StateDatabaseConnection) -> None:
+    def __init__(
+        self,
+        connection: StateDatabaseConnection,
+        slot_revalidator: SlotFeasibilityRevalidator | None = None,
+    ) -> None:
         if not connection.unified_authoritative_database:
             raise ValueError("booking workflow requires the unified authoritative database")
         self._connection = connection
+        self._slot_revalidator = slot_revalidator
 
     def confirm_held_option(
         self,
@@ -106,6 +112,11 @@ class BookingWorkflow:
             ).fetchone()
             if occupied is not None:
                 raise BookingConflict("selected slot is no longer available")
+            if self._slot_revalidator is not None:
+                try:
+                    self._slot_revalidator.validate(shipment_id=shipment_id, slot_id=slot_id)
+                except SlotNotFeasible as error:
+                    raise BookingConflict(str(error)) from error
 
             current = self._connection.execute(
                 """

@@ -52,13 +52,22 @@ class CognitoAccessTokenVerifier:
         self._keys: dict[str, Any] | None = None
 
     def verify(self, token: str) -> dict[str, object]:
-        header = jwt.get_unverified_header(token)
+        try:
+            header = jwt.get_unverified_header(token)
+        except jwt.PyJWTError as error:
+            raise AuthenticationError("token header is invalid") from error
         if header.get("alg") != "RS256" or not isinstance(header.get("kid"), str):
             raise AuthenticationError("token must use an RS256 Cognito signing key")
-        key = self._jwks().get(header["kid"])
+        try:
+            key = self._jwks().get(header["kid"])
+        except (AuthenticationError, KeyError, OSError, TypeError, ValueError) as error:
+            raise AuthenticationError("Cognito signing keys are unavailable") from error
         if key is None:
             self._keys = None
-            key = self._jwks().get(header["kid"])
+            try:
+                key = self._jwks().get(header["kid"])
+            except (AuthenticationError, KeyError, OSError, TypeError, ValueError) as error:
+                raise AuthenticationError("Cognito signing keys are unavailable") from error
         if key is None:
             raise AuthenticationError("token signing key is unknown")
         try:
@@ -77,16 +86,24 @@ class CognitoAccessTokenVerifier:
 
     def _jwks(self) -> dict[str, Any]:
         if self._keys is None:
-            with urlopen(f"{self._issuer}/.well-known/jwks.json", timeout=5) as response:  # noqa: S310
-                payload = json.load(response)
-            keys = payload.get("keys")
-            if not isinstance(keys, list):
-                raise AuthenticationError("Cognito JWKS response is invalid")
-            self._keys = {
-                str(item["kid"]): jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(item))
-                for item in keys
-                if isinstance(item, dict) and isinstance(item.get("kid"), str)
-            }
+            try:
+                with urlopen(  # noqa: S310
+                    f"{self._issuer}/.well-known/jwks.json",
+                    timeout=5,
+                ) as response:
+                    payload = json.load(response)
+                keys = payload.get("keys")
+                if not isinstance(keys, list):
+                    raise AuthenticationError("Cognito JWKS response is invalid")
+                self._keys = {
+                    str(item["kid"]): jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(item))
+                    for item in keys
+                    if isinstance(item, dict) and isinstance(item.get("kid"), str)
+                }
+            except AuthenticationError:
+                raise
+            except (KeyError, OSError, TypeError, ValueError) as error:
+                raise AuthenticationError("Cognito JWKS response is invalid") from error
         return self._keys
 
 

@@ -1,6 +1,6 @@
 # DockIt AI implementation plan
 
-**Status:** Steps 1–7 complete; Step 0 operational decisions remain open  
+**Status:** Steps 1–8 complete; Step 0 operational decisions remain open  
 **Prepared:** 2026-11-26  
 **Planning model:** GPT-5.6-Terra (Extra High)
 
@@ -249,6 +249,10 @@ Streamlit pilot UI as clients of these typed boundaries.
 
 ## Step 8 — HTTP API and Streamlit pilot UI
 
+**Status:** Complete for the authenticated local/API/UI boundary. Cognito,
+Redis, AgentCore, and deployment values remain operational configuration under
+Step 0.
+
 **Implement:**
 
 - Versioned endpoints for delay intake, appointment/option reads, proposal/hold, confirm/cancel, chat/session, health, and readiness.
@@ -259,7 +263,14 @@ Streamlit pilot UI as clients of these typed boundaries.
 
 **Validate:** httpx integration tests, OpenAPI review, auth checks, idempotent mutations, and UI smoke tests if included.
 
+**Final validation:** pytest reported 69 passed; Ruff passed; mypy passed for
+35 source files. The 17 warnings are third-party LangSmith deprecations. Step
+record: `docs/implementation/08-http-api-streamlit.md`.
+
 **Exit:** documented API consumers can complete the confirmed journeys.
+
+**Exact next step:** implement Step 9 operations, deployment, telemetry,
+secrets, runbooks, and release controls for the confirmed target.
 
 ## Step 9 — operations and deployment
 

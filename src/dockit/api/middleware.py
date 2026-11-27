@@ -10,8 +10,9 @@ from uuid import UUID, uuid4
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse, Response
+from starlette.responses import Response
 
+from dockit.api.errors import error_response
 from dockit.core.logging import correlation_id
 
 LOGGER = logging.getLogger("dockit.http")
@@ -82,6 +83,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         while window and window[0] <= now - 60:
             window.popleft()
         if len(window) >= self._requests_per_minute:
-            return JSONResponse({"detail": "rate limit exceeded"}, status_code=429)
+            return error_response(429, "rate limit exceeded")
         window.append(now)
         return await call_next(request)
