@@ -61,6 +61,18 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("DOCKIT_REDIS_TOKEN", "UPSTASH_REDIS_REST_TOKEN"),
     )
+    conversation_ttl_seconds: PositiveInt = Field(
+        default=1_200,
+        validation_alias="DOCKIT_CONVERSATION_TTL_SECONDS",
+    )
+    openrouter_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias="OPENROUTER_API_KEY",
+    )
+    openrouter_model: str = Field(
+        default="openai/gpt-4o",
+        validation_alias="DOCKIT_OPENROUTER_MODEL",
+    )
 
     cognito_region: str | None = Field(default=None, validation_alias="COGNITO_REGION")
     cognito_user_pool_id: str | None = Field(default=None, validation_alias="COGNITO_USER_POOL_ID")
