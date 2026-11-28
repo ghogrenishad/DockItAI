@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Protocol
 from urllib.request import urlopen
+from uuid import uuid4
 
 import jwt
 
@@ -142,11 +143,40 @@ class AuthorizationService:
             ).fetchone()
             if driver is None:
                 raise AuthorizationError("email is not enrolled for a SetuHaul driver")
+            driver_id = str(driver[0])
+            subject_link = self._connection.execute(
+                "SELECT driver_id FROM driver_identity_links WHERE cognito_subject = ?", (subject,)
+            ).fetchone()
+            if subject_link is not None:
+                if str(subject_link[0]) == driver_id:
+                    return driver_id
+                raise AuthorizationError("Cognito subject is already linked to another driver")
+            driver_link = self._connection.execute(
+                "SELECT cognito_subject FROM driver_identity_links WHERE driver_id = ?",
+                (driver_id,),
+            ).fetchone()
+            if driver_link is not None:
+                raise AuthorizationError("driver is already linked to another Cognito subject")
             self._connection.execute(
                 """
                 INSERT INTO driver_identity_links (cognito_subject, driver_id, linked_at_utc)
                 VALUES (?, ?, ?)
                 """,
-                (subject, driver[0], timestamp),
+                (subject, driver_id, timestamp),
             )
-            return str(driver[0])
+            self._connection.execute(
+                """
+                INSERT INTO audit_events (
+                    audit_event_id, occurred_at_utc, actor_subject, event_type,
+                    entity_type, entity_id, payload_json, state_hold_id
+                ) VALUES (?, ?, 'system:driver-enrollment', 'driver_identity_enrolled',
+                    'driver', ?, ?, NULL)
+                """,
+                (
+                    f"AUD-DKT-{uuid4().hex}",
+                    timestamp,
+                    driver_id,
+                    json.dumps({"cognito_subject": subject}),
+                ),
+            )
+            return driver_id
