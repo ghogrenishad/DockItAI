@@ -33,6 +33,10 @@ Run the optional Streamlit pilot client with `dockit-ui` or
 `streamlit run src/dockit/ui/streamlit_app.py`; it remains an HTTP client and
 does not copy scheduling or booking policy.
 
+For the current private EC2 pilot, including SSM access, local validation,
+service operation, and identity prerequisites, see the
+[pilot deployment runbook](docs/pilot-deployment-runbook.md).
+
 ## Quality checks
 
 ```bash

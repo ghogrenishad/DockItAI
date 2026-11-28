@@ -23,6 +23,7 @@ dependencies = [
 
 [project.scripts]
 dockit-api = "dockit.api.main:run"
+ dockit-enroll-driver = "dockit.ops.enroll_driver:main"
 dockit-ui = "dockit.ui.streamlit_app:run"
 
 [project.optional-dependencies]
